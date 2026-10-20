@@ -178,6 +178,12 @@ file, the release uses the Apple ID and app-specific password in the
 If a step fails after the tag exists, finish the rest with `pnpm run ship --
 --finish`. Do not start again from the bump.
 
+The notes must thank the people who helped. After the release is published,
+put a line at the top of the notes that names each bug reporter and each
+contributor by GitHub handle, with their issue and pull request numbers. Use
+`gh release edit`. Commit authors do not show who reported a bug, so look at
+the issues that the commits close. Do not thank bots.
+
 The order matters. Publication starts the tap job, and that job reads the macOS
 build from the release. A build that arrives after publication updates nothing.
 
