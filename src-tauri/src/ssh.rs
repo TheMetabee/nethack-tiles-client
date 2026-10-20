@@ -18,7 +18,6 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use russh::client::{self, Handle};
-use russh::keys::ssh_key;
 use russh::{ChannelMsg, Disconnect};
 use tokio::sync::mpsc;
 
@@ -148,11 +147,23 @@ impl client::Handler for ClientHandler {
 
     async fn check_server_key(
         &mut self,
-        server_public_key: &ssh_key::PublicKey,
+        server_key: &russh::keys::PublicKeyOrCertificate,
     ) -> Result<bool, Self::Error> {
         if self.policy == HostKeyPolicy::AcceptAny {
             return Ok(true);
         }
+
+        // known_hosts holds plain keys. A host certificate needs a CA to
+        // check against, and the servers we know of send no certificate.
+        let server_public_key = match server_key {
+            russh::keys::PublicKeyOrCertificate::PublicKey { key, .. } => key,
+            russh::keys::PublicKeyOrCertificate::Certificate(_) => {
+                *self.rejection.lock().unwrap() = Some(HostKeyRejection::Uncheckable(
+                    "the server sent a host certificate, which is not supported".into(),
+                ));
+                return Ok(false);
+            }
+        };
 
         match russh::keys::check_known_hosts(&self.host, self.port, server_public_key) {
             Ok(true) => Ok(true),
